@@ -151,7 +151,7 @@ job("${GITHUB_USER}.roadshow.buildflow.build") {
     // Actual build steps
     steps {
         // Build war file, run tests and measure coverage
-        shell('./gradlew war')
+        shell('./gradlew war -DbuildNumber=${GITHUB_USER}-${BUILD_NUMBER}')
     }
     // Copy artifact permission for promotion job
     configure {
