@@ -157,7 +157,7 @@ job("${GITHUB_USER}.roadshow.buildflow.build") {
     configure {
         it / 'properties' << 'hudson.plugins.copyartifact.CopyArtifactPermissionProperty' {
             'projectNameList' {
-    	        'string' "${GITHUB_USER}.roadshow.generated.promote"
+    	        'string' "${GITHUB_USER}.roadshow.buildflow.promote"
             }
         }
     }
