@@ -11,7 +11,7 @@ import jenkins.model.*
  *              to console output
  *
  */
-def addDefaultParameters(def context, buildsToKeep=50, artifactsToKeep=10, timeoutVal=30) {
+def addDefaultParameters(def context, buildsToKeep=50, artifactsToKeep=10, timeoutVal=40) {
     // Add timestamps and timeouts
     context.wrappers {
         timestamps()
@@ -120,4 +120,122 @@ job("${GITHUB_USER}.roadshow.generated.staticanalysis") {
         // Collect tasks statistics
         tasks('**/*', '', 'FIXME', 'TODO', 'LOW', true)
     }
+}
+
+
+/*
+ * BuilFlow driven pipeline
+ */
+
+buildFlowJob("${GITHUB_USER}.roadshow.buildflow") {
+  parameters {
+    stringParam('GITHUB_USER', "${GITHUB_USER}")
+  }
+    buildFlow('''
+GITHUB_USER = params["GITHUB_USER"]
+
+buildArtefact = build(GITHUB_USER + ".roadshow.buildflow.build")
+parallel (
+    { build(GITHUB_USER + ".roadshow.buildflow.test") },
+    { build(GITHUB_USER + ".roadshow.buildflow.metrics") }
+)
+build(GITHUB_USER + ".roadshow.buildflow.promote", "BUILD_JOB_NAME": GITHUB_USER + ".roadshow.buildflow.build", "BUILD_JOB_NUMBER": buildArtefact.build.number)
+''')
+}
+
+job("${GITHUB_USER}.roadshow.buildflow.build") {
+    // Set default parameters
+    addDefaultParameters(delegate)
+    // Add Git SCM
+    addGitSCM(delegate, "git@github.com:${GITHUB_USER}/roadshow.git")
+    // Actual build steps
+    steps {
+        // Build war file, run tests and measure coverage
+        shell('./gradlew war')
+    }
+    // Post build steps
+    publishers {
+        archiveArtifacts {
+            pattern('build/libs/RoadShow-*.war')
+            onlyIfSuccessful()
+        }
+    }
+}
+
+job("${GITHUB_USER}.roadshow.buildflow.test") {
+    // Set default parameters
+    addDefaultParameters(delegate)
+    // Add Git SCM
+    addGitSCM(delegate, "git@github.com:${GITHUB_USER}/roadshow.git")
+    // Actual build steps
+    steps {
+        // Build war file, run tests and measure coverage
+        shell('./gradlew test')
+    }
+    publishers {
+        // Collect unit test results
+        archiveJunit('build/test-results/*.xml')
+    }
+}
+
+job("${GITHUB_USER}.roadshow.buildflow.metrics") {
+    // Set default parameters
+    addDefaultParameters(delegate)
+    // Add Git SCM
+    addGitSCM(delegate, "git@github.com:${GITHUB_USER}/roadshow.git")
+    // Actual build steps
+    steps {
+        // Build war file, run tests and measure coverage
+        shell('./gradlew check')
+    }
+    // Post build steps
+    publishers {
+        // Collect check style report
+        checkstyle('build/reports/checkstyle/*.xml')
+        // Collect PMD report
+        pmd('build/reports/pmd/*.xml')
+        // Collect tasks statistics
+        tasks('**/*', '', 'FIXME', 'TODO', 'LOW', true)
+        // Collect code coverage report
+        jacocoCodeCoverage()
+        // Collect unit test results
+        archiveJunit('build/test-results/*.xml')
+        // Collect compilation warnings
+        warnings(['Java Compiler (javac)'])
+    }
+}
+
+job("${GITHUB_USER}.roadshow.buildflow.promote") {
+    // Set default parameters
+    addDefaultParameters(delegate)
+    parameters {
+      stringParam('BUILD_JOB_NAME', '')
+      stringParam('BUILD_JOB_NUMBER', '')
+    }
+    // Actual build steps
+    steps {
+        copyArtifacts('$BUILD_JOB_NAME') {
+            includePatterns('*.war')
+            targetDirectory('.')
+            flatten()
+            buildSelector {
+                buildNumber('$BUILD_JOB_NUMBER')
+                latestSuccessful(true)
+            }
+    }
+    }
+  configure { project ->
+    project / buildWrappers << 'org.jfrog.hudson.generic.ArtifactoryGenericConfigurator' {
+      deployPattern('*.war')
+      details {
+        artifactoryName('local-server')
+        artifactoryUrl('http://artifactory:8080/artifactory')
+        deployReleaseRepository {
+          keyFromSelect('libs-snapshot-local')
+          dynamicMode(false)
+      }
+      
+      }
+    }
+  }
 }
