@@ -77,6 +77,13 @@ job("${GITHUB_USER}.roadshow.generated.build") {
     triggers {
         scm('* * * * *')
     }
+    configure {
+        it / 'properties' << 'hudson.plugins.copyartifact.CopyArtifactPermissionProperty' {
+            'projectNameList' {
+    	        'string' "${GITHUB_USER}.roadshow.generated.promote"
+            }
+        }
+    }
     // Actual build steps
     steps {
         // Build war file, run tests and measure coverage
@@ -226,15 +233,14 @@ job("${GITHUB_USER}.roadshow.buildflow.promote") {
     }
   configure { project ->
     project / buildWrappers << 'org.jfrog.hudson.generic.ArtifactoryGenericConfigurator' {
-      deployPattern('*.war')
+      deployPattern('build/libs*.war')
       details {
-        artifactoryName('local-server')
-        artifactoryUrl('http://artifactory:8080/artifactory')
-        deployReleaseRepository {
-          keyFromSelect('libs-snapshot-local')
-          dynamicMode(false)
-      }
-      
+            artifactoryName('local-server')
+            artifactoryUrl('http://artifactory:8080/artifactory')
+            deployReleaseRepository {
+                keyFromSelect('libs-snapshot-local')
+                dynamicMode(false)
+            }
       }
     }
   }
