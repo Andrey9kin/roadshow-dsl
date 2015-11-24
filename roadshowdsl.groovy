@@ -77,13 +77,6 @@ job("${GITHUB_USER}.roadshow.generated.build") {
     triggers {
         scm('* * * * *')
     }
-    configure {
-        it / 'properties' << 'hudson.plugins.copyartifact.CopyArtifactPermissionProperty' {
-            'projectNameList' {
-    	        'string' "${GITHUB_USER}.roadshow.generated.promote"
-            }
-        }
-    }
     // Actual build steps
     steps {
         // Build war file, run tests and measure coverage
@@ -159,6 +152,14 @@ job("${GITHUB_USER}.roadshow.buildflow.build") {
     steps {
         // Build war file, run tests and measure coverage
         shell('./gradlew war')
+    }
+    // Copy artifact permission for promotion job
+    configure {
+        it / 'properties' << 'hudson.plugins.copyartifact.CopyArtifactPermissionProperty' {
+            'projectNameList' {
+    	        'string' "${GITHUB_USER}.roadshow.generated.promote"
+            }
+        }
     }
     // Post build steps
     publishers {
