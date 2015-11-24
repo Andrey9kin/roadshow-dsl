@@ -223,7 +223,7 @@ job("${GITHUB_USER}.roadshow.buildflow.promote") {
     // Actual build steps
     steps {
         copyArtifacts('$BUILD_JOB_NAME') {
-            includePatterns('*.war')
+            includePatterns('build/libs/*.war')
             targetDirectory('.')
             flatten()
             buildSelector {
@@ -234,7 +234,7 @@ job("${GITHUB_USER}.roadshow.buildflow.promote") {
     }
   configure { project ->
     project / buildWrappers << 'org.jfrog.hudson.generic.ArtifactoryGenericConfigurator' {
-      deployPattern('build/libs*.war')
+      deployPattern('*.war')
       details {
             artifactoryName('local-server')
             artifactoryUrl('http://artifactory:8080/artifactory')
