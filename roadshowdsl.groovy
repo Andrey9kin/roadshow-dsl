@@ -122,6 +122,28 @@ job("${GITHUB_USER}.roadshow.generated.staticanalysis") {
     }
 }
 
+/*
+ * Pretested
+ */
+job("${GITHUB_USER}.roadshow.master.pretested") {
+    // Set default parameters
+    addDefaultParameters(delegate)
+    // Add Git SCM
+    addGitSCM(delegate, "git@github.com:${GITHUB_USER}/roadshow.git")
+    // Actual build steps
+    steps {
+        // Build war file, run tests and measure coverage
+        shell('./gradlew check war')
+    }
+    // Post build steps
+    publishers {
+        pretestedIntegration()
+    }
+    wrappers {
+        pretestedIntegration("SQUASHED","master","origin")
+    }
+}
+
 
 /*
  * BuilFlow driven pipeline
