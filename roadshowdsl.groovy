@@ -40,10 +40,10 @@ def addGitSCM(def context, repoURL, branchName='master', credentialsId='jenkins'
                 url(repoURL)
                 credentials(credentialsId)
             }
-          branch(branchName)
-          // Make sure that repository is clean and we have
-          // no leftovers from the previous builds or unsuccessful checkouts
-          wipeOutWorkspace()
+            branch(branchName)
+            extensions {
+                cleanBeforeCheckout()
+            }
         }
     }
 }
